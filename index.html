@@ -2,32 +2,93 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>PDF Converter</title>
+
 <style>
+
 body{
+    margin:0;
     font-family:Arial;
     background:#0f172a;
     color:white;
-    text-align:center;
-    padding:40px;
 }
+
 .container{
-    max-width:600px;
+    max-width:900px;
     margin:auto;
+    padding:40px 20px;
+}
+
+.card{
     background:#1e293b;
     padding:30px;
     border-radius:20px;
 }
-button{
-    padding:12px 20px;
-    margin-top:20px;
+
+h1{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+.upload-box{
+    border:2px dashed #64748b;
+    border-radius:20px;
+    padding:50px;
+    text-align:center;
     cursor:pointer;
 }
-textarea{
+
+.upload-box:hover{
+    border-color:#38bdf8;
+}
+
+input{
+    display:none;
+}
+
+button{
+    margin-top:25px;
     width:100%;
-    height:300px;
+    padding:16px;
+    border:none;
+    border-radius:12px;
+    background:#38bdf8;
+    color:black;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:hover{
+    opacity:0.9;
+}
+
+.result{
+    margin-top:30px;
+    display:none;
+}
+
+pre{
+    background:#020617;
+    padding:20px;
+    border-radius:12px;
+    overflow:auto;
+    white-space:pre-wrap;
+}
+
+.loader{
+    display:none;
+    margin-top:20px;
+    text-align:center;
+}
+
+.error{
+    color:#ef4444;
     margin-top:20px;
 }
+
 </style>
 </head>
 
@@ -35,52 +96,112 @@ textarea{
 
 <div class="container">
 
-<h1>PDF Converter</h1>
+<div class="card">
 
-<input type="file" id="pdfFile" accept=".pdf">
+<h1>PDF Converter SaaS</h1>
 
-<br>
+<label class="upload-box">
 
-<button onclick="convertPDF()">Convert</button>
+    <input type="file" id="pdfFile" accept=".pdf">
 
-<textarea id="output" placeholder="Converted text will appear here"></textarea>
+    <h2>Select PDF File</h2>
+
+    <p>Click to upload PDF</p>
+
+</label>
+
+<button onclick="convertPDF()">
+Convert PDF
+</button>
+
+<div class="loader" id="loader">
+Converting PDF...
+</div>
+
+<div class="error" id="error"></div>
+
+<div class="result" id="result">
+
+<h3>Extracted Text</h3>
+
+<pre id="output"></pre>
+
+</div>
+
+</div>
 
 </div>
 
 <script>
 
-async function convertPDF() {
+async function convertPDF(){
+
+    document.getElementById("error").innerHTML = "";
 
     const file = document.getElementById("pdfFile").files[0];
 
-    if (!file) {
-        alert("Please upload a PDF");
+    if(!file){
+        alert("Please upload PDF");
         return;
     }
 
+    document.getElementById("loader").style.display = "block";
+
+    document.getElementById("result").style.display = "none";
+
     const formData = new FormData();
+
     formData.append("file", file);
 
-    try {
+    try{
 
-        const res = await fetch("https://pdf-converter-api-8be5.onrender.com/convert", {
-            method: "POST",
-            body: formData
-        });
+        const response = await fetch(
+            "https://pdf-converter-api-8be5.onrender.com/convert",
+            {
+                method:"POST",
+                body:formData
+            }
+        );
 
-        const data = await res.json();
+        const data = await response.json();
 
-        if (!data.success) {
-            alert(data.error || "Conversion failed");
+        console.log(data);
+
+        document.getElementById("loader").style.display = "none";
+
+        if(!data.success){
+
+            document.getElementById("error").innerHTML = data.error;
+
             return;
+
         }
 
-        document.getElementById("output").value = data.text;
+        if(!data.text){
 
-    } catch (err) {
-        console.log(err);
-        alert("Server error or CORS issue");
+            document.getElementById("error").innerHTML =
+            "No readable text found in PDF. It may be scanned/image-based.";
+
+            return;
+
+        }
+
+        document.getElementById("result").style.display = "block";
+
+        document.getElementById("output").textContent = data.text;
+
     }
+    catch(err){
+
+        console.log(err);
+
+        document.getElementById("loader").style.display = "none";
+
+        document.getElementById("error").innerHTML =
+        "Server connection failed";
+
+    }
+
 }
 
 </script>
